@@ -32,6 +32,10 @@ async function run() {
     // Find all documents in the Users collection
     users = await usersCollection.find().toArray();
 	
+	const newUser = { "name" : "guy" };
+	
+	const result = await usersCollection.insertOne(newUser);
+	
 	
   } finally {
     // Ensures that the client will close when you finish/error
