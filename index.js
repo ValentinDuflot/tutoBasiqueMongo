@@ -3,6 +3,7 @@ const app = express();
 const port = 3000;
 
 const { MongoClient, ServerApiVersion } = require('mongodb');
+
 const uri = "mongodb+srv://principal:principal@cluster.gmbyc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster";
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -13,29 +14,36 @@ const client = new MongoClient(uri, {
   }
 });
 
+let users = [];
+
 async function run() {
   try {
+	  
+    const database = client.db("test");
+    const usersCollection = database.collection("Users");
+	
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
+	
+
+    // Find all documents in the Users collection
+    users = await usersCollection.find().toArray();
+	
+	
   } finally {
     // Ensures that the client will close when you finish/error
     await client.close();
   }
 }
+
 run().catch(console.dir);
-
-
-// Middleware pour traiter les requêtes JSON
-
+ 
 
 // Liste d'utilisateurs (comme une base de données simulée)
-let users = [
-  { id: 1, name: 'Alice' },
-  { id: 2, name: 'Bob' }
-];
+ 
 
 // Endpoint GET - Récupérer tous les utilisateurs
 app.get('/users', (req, res) => {
