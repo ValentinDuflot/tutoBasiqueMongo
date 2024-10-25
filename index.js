@@ -1,26 +1,13 @@
 const express = require('express'); 
 const app = express();
-const port = 3000;
-const router = express.Router();
+const port = 3000; 
+
 const { MongoClient, ServerApiVersion } = require('mongodb');
-const {ObjectId} = require('mongodb');
-
-
-class UserModel{
-	constructor(collection) {
-		this.collection = collection;
-	}
-	
-	async getAll () {
-		return await this.collection.find({}).toArray();
-	}
-}
-
-
-app.use(express.json());
+const userRoutes = require('./routes/userRoutes');
+const userController = require('./controllers/userController'); 
 
 const uri = "mongodb+srv://principal:principal@cluster.gmbyc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster";
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -29,39 +16,33 @@ const client = new MongoClient(uri, {
   }
 });
  
+app.use(express.json());
 
 async function run() {
   try {
-	  
+    // Connexion à la base de données
     await client.connect();
     const database = client.db("test");
-    const usersCollection = database.collection("Users"); 	 
+    const collection = database.collection("Users");
+
+    userController.init(collection);
 	
-	const userModel = new UserModel(usersCollection);
+	app.use('/', userRoutes);
+ 
+    // Middleware pour gérer les erreurs 500 (erreurs serveur)
+    app.use((err, req, res, next) => {
+      console.error(err.stack);
+      res.status(500).json({ message: 'Erreur interne du serveur' });
+    });
 
-	getAll = async(req,res) => { 
-	try {
-		const users = await userModel.getAll();
-		res.json(users);
-	  } catch (err) {
-		res.status(500).json({ message: 'Erreur lors de la récupération des users' });
-	  }
-	};
-
-
-	router.get('/users', getAll);
-	app.use('/', router);
-	
-	app.listen(port, () => {
+    // Démarrer le serveur
+    app.listen(port, () => {
       console.log(`API en cours d'exécution sur http://localhost:${port}`);
     });
-	
-  } catch (error) {
-    console.error("Erreur de connexion à MongoDB:", error);
+
+  } catch (err) {
+    console.error(err);
   }
 }
 
 run().catch(console.dir);
-
-
-
