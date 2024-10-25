@@ -1,8 +1,23 @@
 const express = require('express'); 
 const app = express();
 const port = 3000;
-
+const router = express.Router();
 const { MongoClient, ServerApiVersion } = require('mongodb');
+const {ObjectId} = require('mongodb');
+
+
+class UserModel{
+	constructor(collection) {
+		this.collection = collection;
+	}
+	
+	async getAll () {
+		return await this.collection.find({}).toArray();
+	}
+}
+
+
+app.use(express.json());
 
 const uri = "mongodb+srv://principal:principal@cluster.gmbyc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster";
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -13,90 +28,40 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   }
 });
-
-let users = [];
+ 
 
 async function run() {
   try {
 	  
-    const database = client.db("test");
-    const usersCollection = database.collection("Users");
-	
-    // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
-    // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    const database = client.db("test");
+    const usersCollection = database.collection("Users"); 	 
 	
+	const userModel = new UserModel(usersCollection);
 
-    // Find all documents in the Users collection
-    users = await usersCollection.find().toArray();
+	getAll = async(req,res) => { 
+	try {
+		const users = await userModel.getAll();
+		res.json(users);
+	  } catch (err) {
+		res.status(500).json({ message: 'Erreur lors de la récupération des users' });
+	  }
+	};
+
+
+	router.get('/users', getAll);
+	app.use('/', router);
 	
-	const newUser = { "name" : "guy" };
+	app.listen(port, () => {
+      console.log(`API en cours d'exécution sur http://localhost:${port}`);
+    });
 	
-	const result = await usersCollection.insertOne(newUser);
-	
-	
-  } finally {
-    // Ensures that the client will close when you finish/error
-    await client.close();
+  } catch (error) {
+    console.error("Erreur de connexion à MongoDB:", error);
   }
 }
 
 run().catch(console.dir);
- 
 
-// Liste d'utilisateurs (comme une base de données simulée)
- 
 
-// Endpoint GET - Récupérer tous les utilisateurs
-app.get('/users', (req, res) => {
-  res.json(users);
-});
 
-// Endpoint GET - Récupérer un utilisateur par ID
-app.get('/users/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const user = users.find(u => u.id === id);
-  if (user) {
-    res.json(user);
-  } else {
-    res.status(404).json({ message: 'Utilisateur non trouvé' });
-  }
-});
-
-// Endpoint POST - Créer un nouvel utilisateur
-app.post('/users', (req, res) => {
-  const newUser = {
-    id: users.length + 1,
-    name: req.body.name
-  };
-  users.push(newUser);
-  res.status(201).json(newUser);
-});
-
-// Endpoint PUT - Mettre à jour un utilisateur
-app.put('/users/:id', (req, res) =>
-{
-  const id = parseInt(req.params.id);
-  const user = users.find(u => u.id === id);
-  if (user) {
-    user.name = req.body.name;
-    res.json(user);
-  } else {
-    res.status(404).json({ message: 'Utilisateur non trouvé' });
-  }
-});
-
-// Endpoint DELETE - Supprimer un utilisateur
-app.delete('/users/:id', (req, res) =>
-{
-  const id = parseInt(req.params.id);
-  users = users.filter(u => u.id !== id);
-  res.status(204).send();
-});
-
-// Démarrer le serveur
-app.listen(port, () => {
-  console.log(`API en cours d'exécution sur http://localhost:${port}`);
-}); 
